@@ -65,6 +65,7 @@ export const FormSection = ({ videoId }: FormSectionProps) => {
   );
 };
 
+// todo
 const FormSectionSkeleton = () => {
   return <div>Loading...</div>;
 };
@@ -159,7 +160,7 @@ const FormSectionSuspense = ({ videoId }: FormSectionProps) => {
     update.mutate(values);
   };
 
-  const fullUrl = `${process.env.VERCEL_URL || "http://localhost:3000"}/videos/${video.id}`;
+  const fullUrl = `${process.env.NEXT_PUBLIC_VERCEL_URL || "http://localhost:3000"}/videos/${video.id}`;
 
   return (
     <>
