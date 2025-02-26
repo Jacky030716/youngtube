@@ -4,6 +4,9 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { TRPCProvider } from "@/trpc/client";
 import { Toaster } from "@/components/ui/sonner";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "@/app/api/uploadthing/core";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -25,6 +28,7 @@ export default function RootLayout({
     <ClerkProvider afterSignOutUrl="/">
       <html lang="en">
         <body className={`${roboto.className}`}>
+          <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
           <TRPCProvider>
             <Toaster />
             {children}

@@ -57,7 +57,7 @@ export async function POST(req: Request) {
 
     await db.insert(users).values({
       clerkId: id,
-      name: `${first_name} ${last_name}`,
+      name: `${first_name || ""} ${last_name || ""}`,
       imageUrl: image_url,
     });
   }

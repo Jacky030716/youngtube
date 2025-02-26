@@ -1,0 +1,13 @@
+import { FormSection } from "@/features/studio/ui/section/FormSection";
+
+interface VideoViewProps {
+  videoId: string;
+}
+
+export const VideoView = ({ videoId }: VideoViewProps) => {
+  return (
+    <div className="px-4 py-2.5 max-w-screen-lg">
+      <FormSection videoId={videoId} />
+    </div>
+  );
+};

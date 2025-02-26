@@ -36,7 +36,7 @@ export const UserAvatar = ({
       className={cn(avatarVariant({ size, className }))}
       onClick={onClick}
     >
-      <AvatarImage src={imageUrl} alt={name} />
+      <AvatarImage src={imageUrl} alt={name} className="object-cover" />
     </Avatar>
   );
 };
