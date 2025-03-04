@@ -50,6 +50,7 @@ import Image from "next/image";
 import { ThumbnailUploadModal } from "@/features/studio/ui/components/ThumbnailUploadModal";
 import { AISparkleButton } from "@/components/AISparkleButton";
 import { ThumbnailGenerateModal } from "@/features/studio/ui/components/ThumbnailGenerateModal";
+import { APP_URL } from "@/constants";
 
 interface FormSectionProps {
   videoId: string;
@@ -160,7 +161,7 @@ const FormSectionSuspense = ({ videoId }: FormSectionProps) => {
     update.mutate(values);
   };
 
-  const fullUrl = `${process.env.NEXT_PUBLIC_VERCEL_URL || "http://localhost:3000"}/videos/${video.id}`;
+  const fullUrl = `${APP_URL || "http://localhost:3000"}/videos/${video.id}`;
 
   return (
     <>

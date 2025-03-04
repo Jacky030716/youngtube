@@ -27,13 +27,29 @@ export const { POST } = serve(async (context) => {
     return existingVideo;
   });
 
+  const transcript = await context.run("get-transcript", async () => {
+    if (video.muxTrackStatus === "ready") {
+      const transcriptUrl = `https://stream.mux.com/${video.muxPlaybackId}/text/${video.muxTrackId}.txt`;
+
+      const response = await fetch(transcriptUrl);
+      if (response.ok) {
+        const transcriptText = await response.text();
+        return transcriptText;
+      } else {
+        throw new Error("Failed to fetch transcript");
+      }
+    } else {
+      throw new Error("Mux track is not ready");
+    }
+  });
+
   const result = await model.generateContent({
     contents: [
       {
         role: "user",
         parts: [
           {
-            text: TITLE_SYSTEM_PROMPT,
+            text: TITLE_SYSTEM_PROMPT + transcript,
           },
         ],
       },

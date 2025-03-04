@@ -1,5 +1,8 @@
 export const DEFAULT_LIMIT = 5;
 
+export const APP_URL =
+  process.env.NEXT_PUBLIC_VERCEL_URL || "http://localhost:3000";
+
 export const TITLE_SYSTEM_PROMPT = `Your task is to generate an SEO-focused title for a YouTube video. Please follow these guidelines:
 - Be concise but descriptive, using relevant keywords to improve discoverability.
 - Highlight the most compelling or unique aspect of the video content.

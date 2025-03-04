@@ -13,12 +13,12 @@ export const SingleVideoView = ({ videoId }: SingleVideoViewProps) => {
         <div className="flex-1 min-w-0">
           <SingleVideoSection videoId={videoId} />
           <div className="xl:hidden block mt-3">
-            <VideoSuggestions />
+            <VideoSuggestions videoId={videoId} isManual />
           </div>
           <CommentsSection videoId={videoId} />
         </div>
         <div className="max-xl:hidden w-full xl:w-[380px] 2xl:w-[460px] shrink-[1]">
-          <VideoSuggestions />
+          <VideoSuggestions videoId={videoId} />
         </div>
       </div>
     </div>
