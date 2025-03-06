@@ -3,6 +3,8 @@ import Image from "next/image";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SearchInput } from "@/features/home/ui/components/SearchInput";
 import { AuthButton } from "@/features/auth/ui/components/AuthButton";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const HomeNavbar = () => {
   return (
@@ -20,7 +22,9 @@ export const HomeNavbar = () => {
 
         {/* Search Bar */}
         <div className="flex-1 flex justify-center max-w-[720px] mx-auto">
-          <SearchInput />
+          <Suspense fallback={<Skeleton className="max-w-[720px]" />}>
+            <SearchInput />
+          </Suspense>
         </div>
 
         {/*  Auth */}

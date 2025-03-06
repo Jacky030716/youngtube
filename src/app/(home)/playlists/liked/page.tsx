@@ -1,19 +1,19 @@
 import { DEFAULT_LIMIT } from "@/constants";
-import { HistoriesView } from "@/features/playlists/ui/views/HistoriesView";
+import { LikedView } from "@/features/playlists/ui/views/LikedView";
 import { HydrateClient, trpc } from "@/trpc/server";
 
 export const dynamic = "force-dynamic";
 
-const HistoriesPage = () => {
-  void trpc.playlists.getHistories.prefetchInfinite({
+const LikedPage = () => {
+  void trpc.playlists.getLiked.prefetchInfinite({
     limit: DEFAULT_LIMIT,
   });
 
   return (
     <HydrateClient>
-      <HistoriesView />
+      <LikedView />
     </HydrateClient>
   );
 };
 
-export default HistoriesPage;
+export default LikedPage;
