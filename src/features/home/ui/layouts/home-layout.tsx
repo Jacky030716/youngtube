@@ -4,6 +4,8 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { HomeNavbar } from "@/features/home/ui/components/HomeNavbar";
 import { HomeSidebar } from "@/features/home/ui/components/HomeSidebar";
 
+export const dynamic = "force-dynamic";
+
 interface HomeLayoutProps {
   children: React.ReactNode;
 }

@@ -1,32 +1,42 @@
 import { z } from "zod";
 import { db } from "@/db/drizzle";
+import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import { and, desc, eq, getTableColumns, lt, or } from "drizzle-orm";
 import { users, videoReactions, videos, videoViews } from "@/db/schema";
-import { TRPCError } from "@trpc/server";
-import { and, or, eq, lt, desc, ilike, getTableColumns } from "drizzle-orm";
-import { baseProcedure, createTRPCRouter } from "@/trpc/init";
 
-export const searchRouter = createTRPCRouter({
-  getMany: baseProcedure
+export const playlistRouter = createTRPCRouter({
+  getHistories: protectedProcedure
     .input(
       z.object({
-        query: z.string().min(1),
-        categoryId: z.string().uuid().nullish(),
         cursor: z
           .object({
             id: z.string().uuid(),
-            updatedAt: z.date(),
+            viewedAt: z.date(),
           })
           .nullish(),
         limit: z.number().min(1).max(100),
       }),
     )
-    .query(async ({ input }) => {
-      const { cursor, limit, query, categoryId } = input;
+    .query(async ({ input, ctx }) => {
+      const { cursor, limit } = input;
+      const { id: userId } = ctx.user;
+
+      const viewerVideoViews = db.$with("viewer_video_views").as(
+        db
+          .select({
+            videoId: videoViews.videoId,
+            viewedAt: videoViews.updatedAt,
+          })
+          .from(videoViews)
+          .where(eq(videoViews.userId, userId)),
+      );
 
       const data = await db
+        .with(viewerVideoViews)
         .select({
           ...getTableColumns(videos),
           user: users,
+          viewedAt: viewerVideoViews.viewedAt,
           viewCount: db.$count(videoViews, eq(videoViews.videoId, videos.id)),
           likeCount: db.$count(
             videoReactions,
@@ -38,23 +48,22 @@ export const searchRouter = createTRPCRouter({
         })
         .from(videos)
         .innerJoin(users, eq(videos.userId, users.id))
+        .innerJoin(viewerVideoViews, eq(viewerVideoViews.videoId, videos.id))
         .where(
           and(
             eq(videos.videoVisibility, "public"),
-            ilike(videos.title, `%${query}%`),
-            categoryId ? eq(videos.categoryId, categoryId) : undefined,
             cursor
               ? or(
-                  lt(videos.updatedAt, cursor.updatedAt),
+                  lt(viewerVideoViews.viewedAt, cursor.viewedAt),
                   and(
-                    eq(videos.updatedAt, cursor.updatedAt),
+                    eq(viewerVideoViews.viewedAt, cursor.viewedAt),
                     lt(videos.id, cursor.id),
                   ),
                 )
               : undefined,
           ),
         )
-        .orderBy(desc(videos.updatedAt), desc(videos.id))
+        .orderBy(desc(viewerVideoViews.viewedAt), desc(videos.id))
         .limit(limit + 1);
 
       const hasMore = data.length > limit;
@@ -68,7 +77,7 @@ export const searchRouter = createTRPCRouter({
       const nextCursor = hasMore
         ? {
             id: lastItem.id,
-            updatedAt: lastItem.updatedAt,
+            viewedAt: lastItem.viewedAt,
           }
         : null;
 

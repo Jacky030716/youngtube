@@ -10,21 +10,17 @@ import { trpc } from "@/trpc/client";
 import { Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
-interface FeedsSectionProps {
-  categoryId?: string;
-}
-
-export const FeedsSection = ({ categoryId }: FeedsSectionProps) => {
+export const TrendingVideosSection = () => {
   return (
-    <Suspense key={categoryId} fallback={<FeedsSectionSkeleton />}>
+    <Suspense fallback={<TrendingVideosSectionSkeleton />}>
       <ErrorBoundary fallback={<p>Something went wrong...</p>}>
-        <FeedsSectionSuspense categoryId={categoryId} />
+        <TrendingVideosSectionSuspense />
       </ErrorBoundary>
     </Suspense>
   );
 };
 
-const FeedsSectionSkeleton = () => (
+const TrendingVideosSectionSkeleton = () => (
   <div className="w-full grid 2xl:grid-cols-4 lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-4 gap-y-10">
     {Array.from({ length: 8 }).map((_, index) => (
       <VideoGridCardSkeleton key={index} />
@@ -32,10 +28,9 @@ const FeedsSectionSkeleton = () => (
   </div>
 );
 
-const FeedsSectionSuspense = ({ categoryId }: FeedsSectionProps) => {
-  const [videos, query] = trpc.videos.getMany.useSuspenseInfiniteQuery(
+const TrendingVideosSectionSuspense = () => {
+  const [videos, query] = trpc.videos.getManyTrending.useSuspenseInfiniteQuery(
     {
-      categoryId,
       limit: DEFAULT_LIMIT,
     },
     {

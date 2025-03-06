@@ -3,6 +3,8 @@ import { HydrateClient, trpc } from "@/trpc/server";
 import { SingleVideoView } from "@/features/videos/ui/views/SingleVideoView";
 import { DEFAULT_LIMIT } from "@/constants";
 
+export const dynamic = "force-dynamic";
+
 interface VideoPageProps {
   params: Promise<{
     videoId: string;
@@ -11,6 +13,7 @@ interface VideoPageProps {
 
 const VideoPage = async ({ params }: VideoPageProps) => {
   const { videoId } = await params;
+
   void trpc.videos.getOne.prefetch({ id: videoId });
   void trpc.comments.getMany.prefetchInfinite({
     videoId,

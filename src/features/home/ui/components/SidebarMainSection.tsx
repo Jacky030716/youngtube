@@ -19,13 +19,13 @@ const navItems = [
   },
   {
     title: "Subscriptions",
-    url: "feeds/subscriptions",
+    url: "/feeds/subscriptions",
     icon: PlaySquareIcon,
     auth: true,
   },
   {
     title: "Trending",
-    url: "feeds/trending",
+    url: "/feeds/trending",
     icon: FlameIcon,
   },
 ];

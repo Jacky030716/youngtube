@@ -15,6 +15,7 @@ const Home = async ({ searchParams }: HomePageProps) => {
 
   void trpc.categories.getMany.prefetch();
   void trpc.videos.getMany.prefetchInfinite({
+    categoryId,
     limit: DEFAULT_LIMIT,
   });
 

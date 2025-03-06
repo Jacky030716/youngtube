@@ -20,6 +20,7 @@ export const useSubscriptions = ({
     onSuccess: () => {
       if (fromVideoId) {
         void utils.videos.getOne.invalidate({ id: fromVideoId });
+        void utils.videos.getManySubscribed.invalidate();
       }
     },
     onError: (error) => {
@@ -32,6 +33,7 @@ export const useSubscriptions = ({
     onSuccess: () => {
       if (fromVideoId) {
         void utils.videos.getOne.invalidate({ id: fromVideoId });
+        void utils.videos.getManySubscribed.invalidate();
       }
     },
     onError: (error) => {
