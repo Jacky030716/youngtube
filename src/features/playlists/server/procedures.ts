@@ -1,10 +1,477 @@
 import { z } from "zod";
 import { db } from "@/db/drizzle";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
-import { and, desc, eq, getTableColumns, lt, or } from "drizzle-orm";
-import { users, videoReactions, videos, videoViews } from "@/db/schema";
+import { and, desc, eq, getTableColumns, lt, or, sql } from "drizzle-orm";
+import {
+  playlists,
+  playlistVideos,
+  users,
+  videoReactions,
+  videos,
+  videoViews,
+} from "@/db/schema";
+import { TRPCError } from "@trpc/server";
 
 export const playlistRouter = createTRPCRouter({
+  remove: protectedProcedure
+    .input(
+      z.object({
+        playlistId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { playlistId } = input;
+      const { id: userId } = ctx.user;
+
+      const [deletedPlaylist] = await db
+        .delete(playlists)
+        .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)))
+        .returning();
+
+      if (!deletedPlaylist) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Playlist does not exist",
+        });
+      }
+
+      return deletedPlaylist;
+    }),
+  getOne: protectedProcedure
+    .input(
+      z.object({
+        playlistId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const { playlistId } = input;
+      const { id: userId } = ctx.user;
+
+      const [existingPlaylist] = await db
+        .select()
+        .from(playlists)
+        .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)));
+
+      if (!existingPlaylist) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Playlist does not exist",
+        });
+      }
+
+      return existingPlaylist;
+    }),
+  getPlaylistVideos: protectedProcedure
+    .input(
+      z.object({
+        playlistId: z.string().uuid(),
+        cursor: z
+          .object({
+            id: z.string().uuid(),
+            updatedAt: z.date(),
+          })
+          .nullish(),
+        limit: z.number().min(1).max(100),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const { cursor, limit, playlistId } = input;
+      const { id: userId } = ctx.user;
+
+      const [existingPlaylist] = await db
+        .select()
+        .from(playlists)
+        .where(and(eq(playlists.id, playlistId), eq(playlists.userId, userId)));
+
+      if (!existingPlaylist) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Playlist does not exist",
+        });
+      }
+
+      const videosFromPlaylist = db.$with("playlists_videos").as(
+        db
+          .select({
+            videoId: playlistVideos.videoId,
+            updatedAt: playlistVideos.updatedAt,
+          })
+          .from(playlistVideos)
+          .where(eq(playlistVideos.playlistId, playlistId)),
+      );
+
+      const data = await db
+        .with(videosFromPlaylist)
+        .select({
+          ...getTableColumns(videos),
+          user: users,
+          viewCount: db.$count(videoViews, eq(videoViews.videoId, videos.id)),
+          likeCount: db.$count(
+            videoReactions,
+            and(
+              eq(videoReactions.videoId, videos.id),
+              eq(videoReactions.type, "like"),
+            ),
+          ),
+        })
+        .from(videos)
+        .innerJoin(users, eq(videos.userId, users.id))
+        .innerJoin(
+          videosFromPlaylist,
+          eq(videosFromPlaylist.videoId, videos.id),
+        )
+        .where(
+          and(
+            eq(videos.videoVisibility, "public"),
+            cursor
+              ? or(
+                  lt(videos.updatedAt, cursor.updatedAt),
+                  and(
+                    eq(videos.updatedAt, cursor.updatedAt),
+                    lt(videos.id, cursor.id),
+                  ),
+                )
+              : undefined,
+          ),
+        )
+        .orderBy(desc(videos.updatedAt), desc(videos.id))
+        .limit(limit + 1);
+
+      const hasMore = data.length > limit;
+
+      // Remove last item if there is more data
+      const items = hasMore ? data.slice(0, -1) : data;
+
+      // Set the next cursor to the last item if there is more data
+      const lastItem = items[items.length - 1];
+
+      const nextCursor = hasMore
+        ? {
+            id: lastItem.id,
+            updatedAt: lastItem.updatedAt,
+          }
+        : null;
+
+      return {
+        items,
+        nextCursor,
+      };
+    }),
+  removeVideo: protectedProcedure
+    .input(
+      z.object({
+        playlistId: z.string().uuid(),
+        videoId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { playlistId, videoId } = input;
+      const { id: userId } = ctx.user;
+
+      const [existingPlaylist] = await db
+        .select()
+        .from(playlists)
+        .where(eq(playlists.id, playlistId));
+
+      if (!existingPlaylist) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Playlist does not exist",
+        });
+      }
+
+      if (existingPlaylist.userId !== userId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to add videos to this playlist",
+        });
+      }
+
+      const [existingVideo] = await db
+        .select()
+        .from(videos)
+        .where(eq(videos.id, videoId));
+
+      if (!existingVideo) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Video does not exist",
+        });
+      }
+
+      const [existingPlaylistVideo] = await db
+        .select()
+        .from(playlistVideos)
+        .where(
+          and(
+            eq(playlistVideos.playlistId, playlistId),
+            eq(playlistVideos.videoId, videoId),
+          ),
+        );
+
+      if (!existingPlaylistVideo) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Video does not exist in playlist",
+        });
+      }
+
+      const [deletedVideo] = await db
+        .delete(playlistVideos)
+        .where(
+          and(
+            eq(playlistVideos.playlistId, playlistId),
+            eq(playlistVideos.videoId, videoId),
+          ),
+        )
+        .returning();
+
+      return deletedVideo;
+    }),
+  addVideo: protectedProcedure
+    .input(
+      z.object({
+        playlistId: z.string().uuid(),
+        videoId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { playlistId, videoId } = input;
+      const { id: userId } = ctx.user;
+
+      const [existingPlaylist] = await db
+        .select()
+        .from(playlists)
+        .where(eq(playlists.id, playlistId));
+
+      if (!existingPlaylist) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Playlist does not exist",
+        });
+      }
+
+      if (existingPlaylist.userId !== userId) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to add videos to this playlist",
+        });
+      }
+
+      const [existingVideo] = await db
+        .select()
+        .from(videos)
+        .where(eq(videos.id, videoId));
+
+      if (!existingVideo) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Video does not exist",
+        });
+      }
+
+      const [existingPlaylistVideo] = await db
+        .select()
+        .from(playlistVideos)
+        .where(
+          and(
+            eq(playlistVideos.playlistId, playlistId),
+            eq(playlistVideos.videoId, videoId),
+          ),
+        );
+
+      if (existingPlaylistVideo) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Video already exists in playlist",
+        });
+      }
+
+      const [createdPlaylistVideo] = await db
+        .insert(playlistVideos)
+        .values({
+          playlistId,
+          videoId,
+        })
+        .returning();
+
+      return createdPlaylistVideo;
+    }),
+  getManyForVideos: protectedProcedure
+    .input(
+      z.object({
+        videoId: z.string().uuid(),
+        cursor: z
+          .object({
+            id: z.string().uuid(),
+            updatedAt: z.date(),
+          })
+          .nullish(),
+        limit: z.number().min(1).max(100),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const { cursor, limit, videoId } = input;
+      const { id: userId } = ctx.user;
+
+      const data = await db
+        .select({
+          ...getTableColumns(playlists),
+          videoCount: db.$count(
+            playlistVideos,
+            eq(playlistVideos.playlistId, playlists.id),
+          ),
+          user: users,
+          containsVideo: videoId
+            ? sql<boolean>`(
+              SELECT EXISTS (
+                SELECT 1
+                FROM ${playlistVideos} pv
+                WHERE pv.playlist_id = ${playlists.id} AND pv.video_id = ${videoId}
+              )
+            )`
+            : sql<boolean>`false`,
+        })
+        .from(playlists)
+        .innerJoin(users, eq(playlists.userId, users.id))
+        .where(
+          and(
+            eq(playlists.userId, userId),
+            cursor
+              ? or(
+                  lt(playlists.updatedAt, cursor.updatedAt),
+                  and(
+                    eq(playlists.updatedAt, cursor.updatedAt),
+                    lt(playlists.id, cursor.id),
+                  ),
+                )
+              : undefined,
+          ),
+        )
+        .orderBy(desc(playlists.updatedAt), desc(playlists.id))
+        .limit(limit + 1);
+
+      const hasMore = data.length > limit;
+
+      // Remove last item if there is more data
+      const items = hasMore ? data.slice(0, -1) : data;
+
+      // Set the next cursor to the last item if there is more data
+      const lastItem = items[items.length - 1];
+
+      const nextCursor = hasMore
+        ? {
+            id: lastItem.id,
+            updatedAt: lastItem.updatedAt,
+          }
+        : null;
+
+      return {
+        items,
+        nextCursor,
+      };
+    }),
+  getMany: protectedProcedure
+    .input(
+      z.object({
+        cursor: z
+          .object({
+            id: z.string().uuid(),
+            updatedAt: z.date(),
+          })
+          .nullish(),
+        limit: z.number().min(1).max(100),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const { cursor, limit } = input;
+      const { id: userId } = ctx.user;
+
+      const data = await db
+        .select({
+          ...getTableColumns(playlists),
+          videoCount: db.$count(
+            playlistVideos,
+            eq(playlistVideos.playlistId, playlists.id),
+          ),
+          user: users,
+          thumbnailUrl: sql<string | null>`
+            (
+              SELECT v.thumbnail_url
+              FROM ${playlistVideos} pv
+              JOIN ${videos} v ON pv.video_id = v.id
+              WHERE pv.playlist_id = ${playlists.id}
+              ORDER BY pv.updated_at DESC
+              LIMIT 1
+            )
+          `,
+        })
+        .from(playlists)
+        .innerJoin(users, eq(playlists.userId, users.id))
+        .where(
+          and(
+            eq(playlists.userId, userId),
+            cursor
+              ? or(
+                  lt(playlists.updatedAt, cursor.updatedAt),
+                  and(
+                    eq(playlists.updatedAt, cursor.updatedAt),
+                    lt(playlists.id, cursor.id),
+                  ),
+                )
+              : undefined,
+          ),
+        )
+        .orderBy(desc(playlists.updatedAt), desc(playlists.id))
+        .limit(limit + 1);
+
+      const hasMore = data.length > limit;
+
+      // Remove last item if there is more data
+      const items = hasMore ? data.slice(0, -1) : data;
+
+      // Set the next cursor to the last item if there is more data
+      const lastItem = items[items.length - 1];
+
+      const nextCursor = hasMore
+        ? {
+            id: lastItem.id,
+            updatedAt: lastItem.updatedAt,
+          }
+        : null;
+
+      return {
+        items,
+        nextCursor,
+      };
+    }),
+  create: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1).max(30),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { name } = input;
+      const { id: userId } = ctx.user;
+
+      const [createdPlaylist] = await db
+        .insert(playlists)
+        .values({
+          name,
+          userId,
+        })
+        .returning();
+
+      if (!createdPlaylist) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Playlist could not be created",
+        });
+      }
+
+      return createdPlaylist;
+    }),
   getHistories: protectedProcedure
     .input(
       z.object({

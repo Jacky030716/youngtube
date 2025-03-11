@@ -2,7 +2,7 @@
 
 import { trpc } from "@/trpc/client";
 import { DEFAULT_LIMIT } from "@/constants";
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { InfiniteScroll } from "@/components/InfiniteScroll";
 import {
@@ -84,9 +84,9 @@ const VideoSectionSuspense = () => {
               <TableHead>Visibility</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Views</TableHead>
-              <TableHead className="text-right">Comments</TableHead>
-              <TableHead className="text-right pr-6">Likes</TableHead>
+              <TableHead className="text-center">Views</TableHead>
+              <TableHead className="text-center">Comments</TableHead>
+              <TableHead className="text-center pr-6">Likes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -139,12 +139,14 @@ const VideoSectionSuspense = () => {
                     <TableCell className="text-sm truncate">
                       {format(new Date(video.createdAt), "d MMM yyyy")}
                     </TableCell>
-                    <TableCell className="text-right text-sm">views</TableCell>
-                    <TableCell className="text-right text-sm">
-                      comments
+                    <TableCell className="text-center text-sm">
+                      {video.viewCount}
                     </TableCell>
-                    <TableCell className="text-right text-sm pr-6">
-                      likes
+                    <TableCell className="text-center text-sm">
+                      {video.commentCount}
+                    </TableCell>
+                    <TableCell className="text-center text-sm pr-6">
+                      {video.likeCount}
                     </TableCell>
                   </TableRow>
                 </Link>

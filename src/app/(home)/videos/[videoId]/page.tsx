@@ -11,6 +11,28 @@ interface VideoPageProps {
   }>;
 }
 
+export const generateMetadata = async ({ params }: VideoPageProps) => {
+  const { videoId } = await params;
+  const video = await trpc.videos.getOne({ id: videoId });
+
+  return {
+    title: `${video.title} | Watch Now - YoungTube`,
+    description: `Watch now on YoungTube. ${video.description ?? ""}. Subscribe for more videos like this!`,
+    openGraph: {
+      title: `${video.title} | Watch Now - YoungTube`,
+      description: `Watch now on YoungTube. ${video.description ?? ""} Subscribe for more videos like this!`,
+      images: [
+        {
+          url: video.thumbnailUrl,
+          width: 1280,
+          height: 720,
+          alt: video.title,
+        },
+      ],
+    },
+  };
+};
+
 const VideoPage = async ({ params }: VideoPageProps) => {
   const { videoId } = await params;
 
