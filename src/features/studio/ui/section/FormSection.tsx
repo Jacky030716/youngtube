@@ -356,7 +356,7 @@ const FormSectionSuspense = ({ videoId }: FormSectionProps) => {
                         Video Link
                       </p>
                       <div className="flex items-center gap-2">
-                        <Link href={`/videos/${video.id}`}>
+                        <Link prefetch href={`/videos/${video.id}`}>
                           <p className="text-sm line-clamp-1 text-blue-500">
                             {fullUrl}
                           </p>

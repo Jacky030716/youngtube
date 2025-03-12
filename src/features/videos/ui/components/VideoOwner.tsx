@@ -26,7 +26,11 @@ export const VideoOwner = ({ user, video }: VideoOwnerProps) => {
   return (
     <div className="w-full flex justify-between gap-4">
       <div className="flex-1 flex gap-6 items-center">
-        <Link href={`/users/${user.id}`} className="flex items-center gap-2">
+        <Link
+          prefetch
+          href={`/users/${user.id}`}
+          className="flex items-center gap-2"
+        >
           <UserAvatar size="lg" imageUrl={user.imageUrl} name={user.name} />
 
           <div className="flex flex-col">
@@ -42,7 +46,9 @@ export const VideoOwner = ({ user, video }: VideoOwnerProps) => {
             className="rounded-full w-[120px]"
             variant="secondary"
           >
-            <Link href={`/studio/videos/${video.id}`}>Edit Video</Link>
+            <Link prefetch href={`/studio/videos/${video.id}`}>
+              Edit Video
+            </Link>
           </Button>
         ) : (
           <SubscriptionButton

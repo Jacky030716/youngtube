@@ -18,9 +18,12 @@ export const useSubscriptions = ({
 
   const subscribe = trpc.subscriptions.subscribe.useMutation({
     onSuccess: () => {
+      void utils.videos.getManySubscribed.invalidate();
+      void utils.users.getOne.invalidate({ id: creatorId });
+      void utils.subscriptions.getMany.invalidate();
+
       if (fromVideoId) {
         void utils.videos.getOne.invalidate({ id: fromVideoId });
-        void utils.videos.getManySubscribed.invalidate();
       }
     },
     onError: (error) => {
@@ -31,9 +34,12 @@ export const useSubscriptions = ({
   });
   const unsubscribe = trpc.subscriptions.unsubscribe.useMutation({
     onSuccess: () => {
+      void utils.videos.getManySubscribed.invalidate();
+      void utils.users.getOne.invalidate({ id: creatorId });
+      void utils.subscriptions.getMany.invalidate();
+
       if (fromVideoId) {
         void utils.videos.getOne.invalidate({ id: fromVideoId });
-        void utils.videos.getManySubscribed.invalidate();
       }
     },
     onError: (error) => {

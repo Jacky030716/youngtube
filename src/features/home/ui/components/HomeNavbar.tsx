@@ -12,7 +12,7 @@ export const HomeNavbar = () => {
       <div className="flex items-center gap-4 w-full">
         <div className="flex items-center shrink-0">
           <SidebarTrigger />
-          <Link href="/">
+          <Link prefetch href="/" className="hidden md:block">
             <div className="flex p-4 items-center gap-1">
               <Image src="/logo.png" alt="logo" height={32} width={32} />
               <p className="text-xl font-semibold tracking-tight">YoungTube</p>

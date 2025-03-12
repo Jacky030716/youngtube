@@ -60,6 +60,7 @@ export const CommentBox = ({
           <div className="w-full flex justify-between space-y-2">
             <div className="flex flex-col gap-1">
               <Link
+                prefetch
                 href={`/users/${comment.user.id}`}
                 className="flex gap-2 items-center"
               >
