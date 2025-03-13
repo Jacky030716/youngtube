@@ -36,10 +36,10 @@ export const { POST } = serve(async (context) => {
         const transcriptText = await response.text();
         return transcriptText;
       } else {
-        throw new Error("Failed to fetch transcript");
+        return "";
       }
     } else {
-      throw new Error("Mux track is not ready");
+      return "";
     }
   });
 
