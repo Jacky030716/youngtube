@@ -2,7 +2,7 @@ import { serve } from "@upstash/workflow/nextjs";
 import { db } from "@/db/drizzle";
 import { videos } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import model from "@/lib/gemini";
+import { model } from "@/lib/gemini";
 import { DESCRIPTION_SYSTEM_PROMPT } from "@/constants";
 
 interface InputType {
@@ -27,6 +27,9 @@ export const { POST } = serve(async (context) => {
     return existingVideo;
   });
 
+  // Check if the video has a title
+  const title = video.title || "";
+
   const transcript = await context.run("get-transcript", async () => {
     if (video.muxTrackStatus === "ready") {
       const transcriptUrl = `https://stream.mux.com/${video.muxPlaybackId}/text/${video.muxTrackId}.txt`;
@@ -49,7 +52,8 @@ export const { POST } = serve(async (context) => {
         role: "user",
         parts: [
           {
-            text: DESCRIPTION_SYSTEM_PROMPT + transcript,
+            text:
+              DESCRIPTION_SYSTEM_PROMPT + transcript + `\n\nTitle: ${title}`,
           },
         ],
       },

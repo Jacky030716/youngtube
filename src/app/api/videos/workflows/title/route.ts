@@ -2,7 +2,7 @@ import { serve } from "@upstash/workflow/nextjs";
 import { db } from "@/db/drizzle";
 import { videos } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
-import model from "@/lib/gemini";
+import { model } from "@/lib/gemini";
 import { TITLE_SYSTEM_PROMPT } from "@/constants";
 
 interface InputType {

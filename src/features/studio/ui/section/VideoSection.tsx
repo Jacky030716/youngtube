@@ -18,6 +18,7 @@ import { VideoThumbnail } from "@/features/videos/ui/components/VideoThumbnail";
 import { format } from "date-fns";
 import { Globe2Icon, LockIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 export const VideoSection = () => {
   return (
@@ -65,6 +66,8 @@ const VideoSectionSkeleton = () => {
 };
 
 const VideoSectionSuspense = () => {
+  const router = useRouter();
+
   const [videos, query] = trpc.studio.getMany.useSuspenseInfiniteQuery(
     {
       limit: DEFAULT_LIMIT,
@@ -93,64 +96,61 @@ const VideoSectionSuspense = () => {
             {videos.pages
               .flatMap((page) => page.items)
               .map((video) => (
-                <Link
-                  prefetch
-                  href={`/studio/videos/${video.id}`}
-                  legacyBehavior
+                <TableRow
+                  className="cursor-pointer"
                   key={video.id}
+                  onClick={() => router.push(`/studio/videos/${video.id}`)}
                 >
-                  <TableRow className="cursor-pointer">
-                    <TableCell>
-                      <div className="flex items-center gap-4">
-                        <div className="relative aspect-video w-36 shrink-0">
-                          <VideoThumbnail
-                            title={video.title}
-                            duration={video.duration || 0}
-                            imageUrl={video.thumbnailUrl}
-                            previewUrl={video.previewUrl}
-                          />
-                        </div>
-                        <div className="flex flex-col overflow-hidden gap-y-1">
-                          <span className="text-sm line-clamp-1">
-                            {video.title}
-                          </span>
-                          <span className="text-xs text-muted-foreground line-clamp-3">
-                            {video.description || "No description"}
-                          </span>
-                        </div>
+                  <TableCell>
+                    <div className="flex items-center gap-4">
+                      <div className="relative aspect-video w-36 shrink-0">
+                        <VideoThumbnail
+                          title={video.title}
+                          duration={video.duration || 0}
+                          imageUrl={video.thumbnailUrl}
+                          previewUrl={video.previewUrl}
+                        />
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        {video.videoVisibility === "private" ? (
-                          <LockIcon className="size-4 mr-2" />
-                        ) : (
-                          <Globe2Icon className="size-4 mr-2" />
-                        )}
-                        <span className="capitalize">
-                          {video.videoVisibility}
+                      <div className="flex flex-col overflow-hidden gap-y-1">
+                        <span className="text-sm line-clamp-1">
+                          {video.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground line-clamp-3">
+                          {video.description || "No description"}
                         </span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center capitalize">
-                        {video.muxStatus}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm truncate">
-                      {format(new Date(video.createdAt), "d MMM yyyy")}
-                    </TableCell>
-                    <TableCell className="text-center text-sm">
-                      {video.viewCount}
-                    </TableCell>
-                    <TableCell className="text-center text-sm">
-                      {video.commentCount}
-                    </TableCell>
-                    <TableCell className="text-center text-sm pr-6">
-                      {video.likeCount}
-                    </TableCell>
-                  </TableRow>
-                </Link>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      {video.videoVisibility === "private" ? (
+                        <LockIcon className="size-4 mr-2" />
+                      ) : (
+                        <Globe2Icon className="size-4 mr-2" />
+                      )}
+                      <span className="capitalize">
+                        {video.videoVisibility}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center capitalize">
+                      {video.muxStatus}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm truncate">
+                    {format(new Date(video.createdAt), "d MMM yyyy")}
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {video.viewCount}
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {video.commentCount}
+                  </TableCell>
+                  <TableCell className="text-center text-sm pr-6">
+                    {video.likeCount}
+                  </TableCell>
+                </TableRow>
               ))}
           </TableBody>
         </Table>

@@ -27,6 +27,8 @@ export const studioRouter = createTRPCRouter({
         .from(videos)
         .where(and(eq(videos.id, id), eq(videos.userId, userId)));
 
+      console.log(video);
+
       if (!video) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
@@ -52,7 +54,9 @@ export const studioRouter = createTRPCRouter({
       const data = await db
         .select({
           ...getTableColumns(videos),
-          user: users,
+          user: {
+            ...getTableColumns(users),
+          },
           likeCount: db.$count(
             videoReactions,
             and(
@@ -83,19 +87,16 @@ export const studioRouter = createTRPCRouter({
         .limit(limit + 1);
 
       const hasMore = data.length > limit;
-
-      // Remove last item if there is more data
       const items = hasMore ? data.slice(0, -1) : data;
-
-      // Set the next cursor to the last item if there is more data
       const lastItem = items[items.length - 1];
 
-      const nextCursor = hasMore
-        ? {
-            id: lastItem.id,
-            updatedAt: lastItem.updatedAt,
-          }
-        : null;
+      const nextCursor =
+        hasMore && lastItem
+          ? {
+              id: lastItem.id,
+              updatedAt: lastItem.updatedAt,
+            }
+          : null;
 
       return {
         items,

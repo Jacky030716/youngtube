@@ -36,7 +36,7 @@ const TrendingVideosSectionSuspense = () => {
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
     },
-  );
+  );  
 
   return (
     <>

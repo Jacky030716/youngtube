@@ -8,11 +8,16 @@ import { eq } from "drizzle-orm";
 import { ratelimit } from "@/lib/ratelimit";
 
 export const createTRPCContext = cache(async () => {
-  const { userId } = await auth();
-
-  return {
-    clerkUserId: userId,
-  };
+  try {
+    const { userId } = await auth();
+    return {
+      clerkUserId: userId ?? null,
+    };
+  } catch {
+    return {
+      clerkUserId: null,
+    };
+  }
 });
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;

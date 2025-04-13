@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/db/drizzle";
 import { subscriptions, users } from "@/db/schema";
 import { and, desc, eq, getTableColumns, inArray, lt, or } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 
 export const subscriptionsRouter = createTRPCRouter({
   getMany: protectedProcedure
@@ -52,19 +53,16 @@ export const subscriptionsRouter = createTRPCRouter({
         .limit(limit + 1);
 
       const hasMore = data.length > limit;
-
-      // Remove last item if there is more data
       const items = hasMore ? data.slice(0, -1) : data;
-
-      // Set the next cursor to the last item if there is more data
       const lastItem = items[items.length - 1];
 
-      const nextCursor = hasMore
-        ? {
-            creatorId: lastItem.creatorId,
-            updatedAt: lastItem.updatedAt,
-          }
-        : null;
+      const nextCursor =
+        hasMore && lastItem
+          ? {
+              creatorId: lastItem.creatorId,
+              updatedAt: lastItem.updatedAt,
+            }
+          : null;
 
       return {
         items,
@@ -80,6 +78,32 @@ export const subscriptionsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { creatorId } = input;
       const { id: viewerId } = ctx.user;
+
+      // Prevent self-subscription
+      if (creatorId === viewerId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot subscribe to yourself",
+        });
+      }
+
+      // Check if subscription already exists
+      const [existingSubscription] = await db
+        .select()
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.viewerId, viewerId),
+            eq(subscriptions.creatorId, creatorId),
+          ),
+        );
+
+      if (existingSubscription) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Already subscribed",
+        });
+      }
 
       const [newSubscription] = await db
         .insert(subscriptions)
@@ -100,6 +124,24 @@ export const subscriptionsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { creatorId } = input;
       const { id: viewerId } = ctx.user;
+
+      // Check if subscription exists
+      const [existingSubscription] = await db
+        .select()
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.viewerId, viewerId),
+            eq(subscriptions.creatorId, creatorId),
+          ),
+        );
+
+      if (!existingSubscription) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Subscription not found",
+        });
+      }
 
       const [deletedSubscription] = await db
         .delete(subscriptions)

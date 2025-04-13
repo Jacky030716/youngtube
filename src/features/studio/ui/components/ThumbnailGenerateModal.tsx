@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { pollWorkflowStatus } from "../../utils/pollWorkflowStatus";
 
 interface ThumbnailGenerateModalProps {
   videoId: string;
@@ -42,12 +43,21 @@ export const ThumbnailGenerateModal = ({
   });
 
   const generateThumbnail = trpc.videos.generateThumbnail.useMutation({
-    onSuccess: () => {
-      void utils.studio.getOne.invalidate({ id: videoId });
-
-      toast.success("Generating title", {
+    onSuccess: async ({ workflowRunId }) => {
+      toast.success("Generating thumbnail", {
         description: "This may take a while",
       });
+
+      onOpenChange(false);
+
+      const { status } = await pollWorkflowStatus(workflowRunId);
+
+      if (status === "success") {
+        toast.success("Thumbnail generated successfully");
+
+        void utils.studio.getMany.invalidate();
+        void utils.studio.getOne.invalidate({ id: videoId });
+      }
     },
     onError: (error) => {
       toast.error(error.message);
@@ -60,6 +70,8 @@ export const ThumbnailGenerateModal = ({
       prompt: values.prompt,
     });
   };
+
+  const isDisabled = generateThumbnail.isPending;
 
   return (
     <ResponsiveDialog
@@ -91,7 +103,9 @@ export const ThumbnailGenerateModal = ({
             )}
           />
           <div className="flex md:justify-end justify-center">
-            <Button type="submit">Generate</Button>
+            <Button type="submit" disabled={isDisabled}>
+              {isDisabled ? "Generating..." : "Generate"}
+            </Button>
           </div>
         </form>
       </Form>

@@ -51,6 +51,7 @@ import { ThumbnailUploadModal } from "@/features/studio/ui/components/ThumbnailU
 import { AISparkleButton } from "@/components/AISparkleButton";
 import { ThumbnailGenerateModal } from "@/features/studio/ui/components/ThumbnailGenerateModal";
 import { APP_URL } from "@/constants";
+import { pollWorkflowStatus } from "../../utils/pollWorkflowStatus";
 
 interface FormSectionProps {
   videoId: string;
@@ -118,10 +119,21 @@ const FormSectionSuspense = ({ videoId }: FormSectionProps) => {
   });
 
   const generateTitle = trpc.videos.generateTitle.useMutation({
-    onSuccess: () => {
+    onSuccess: async ({ workflowRunId }) => {
       toast.success("Generating title", {
         description: "This may take a while",
       });
+
+      const { status } = await pollWorkflowStatus(workflowRunId);
+
+      if (status === "success") {
+        toast.success("Title generated successfully");
+
+        void utils.studio.getMany.invalidate();
+        void utils.studio.getOne.invalidate({ id: videoId });
+      } else {
+        toast.error("Failed to generate title");
+      }
     },
     onError: (error) => {
       toast.error(error.message);
@@ -129,12 +141,21 @@ const FormSectionSuspense = ({ videoId }: FormSectionProps) => {
   });
 
   const generateDescription = trpc.videos.generateDescription.useMutation({
-    onSuccess: () => {
-      void utils.studio.getOne.invalidate({ id: videoId });
-
+    onSuccess: async ({ workflowRunId }) => {
       toast.success("Generating description", {
         description: "This may take a while",
       });
+
+      const { status } = await pollWorkflowStatus(workflowRunId);
+
+      if (status === "success") {
+        toast.success("Description generated successfully");
+
+        void utils.studio.getMany.invalidate();
+        void utils.studio.getOne.invalidate({ id: videoId });
+      } else {
+        toast.error("Failed to generate description");
+      }
     },
     onError: (error) => {
       toast.error(error.message);

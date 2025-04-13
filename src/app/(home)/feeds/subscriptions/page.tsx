@@ -5,7 +5,7 @@ import { HydrateClient, trpc } from "@/trpc/server";
 export const dynamic = "force-dynamic";
 
 const TredingPage = async () => {
-  void trpc.videos.getManySubscribed.prefetchInfinite({
+  await trpc.videos.getManySubscribed.prefetchInfinite({
     limit: DEFAULT_LIMIT,
   });
 

@@ -11,6 +11,7 @@ import { suggestionsRouter } from "@/features/video-suggestions/server/procedure
 import { searchRouter } from "@/features/search/server/procedures";
 import { playlistRouter } from "@/features/playlists/server/procedures";
 import { usersRouter } from "@/features/users/server/procedures";
+import { workflowsRouter } from "@/features/workflows/server/procedures";
 
 export const appRouter = createTRPCRouter({
   studio: studioRouter,
@@ -25,6 +26,7 @@ export const appRouter = createTRPCRouter({
   search: searchRouter,
   playlists: playlistRouter,
   users: usersRouter,
+  workflows: workflowsRouter,
 });
 
 // export type definition of API
